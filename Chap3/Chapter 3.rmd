@@ -51,12 +51,6 @@ load("../data/raw_prices.rdata")
 ```
 
 ```{r}
-# BAD.  Drops incomplete rows with NAs
-to.monthly(raw_prices,indexAt = "lastof",OHLC=FALSE)
-```
-```{r}
-
-#SO go right to tidyverse and time-aware tibble
 prices<-timetk::tk_tbl(raw_prices) %>%
   rename(date=index) %>% 
   tibbletime::as_tbl_time(index=date) 
@@ -76,63 +70,27 @@ returns <- prices %>% transmute(date=date,return=log(price)/lag(log(price))-1) %
 returns
 ```
 
-```{r}
-#plot distributions
-# remove OIMYX OMFL since they don't have long histories
-returns %>% filter(symbol != "OMFL" &  
-                    symbol != "OIMYX" &
-                     symbol != "ESGF") %>% 
-  ggplot(aes(return,fill=symbol))+geom_density(alpha=0.5)
+
+```{r eval=FALSE, include=FALSE}
+#Make portfolio  Load positions
+# not part of git
+positions<-read_csv("../data/Positions.csv")
+
+#filter out cash
+positions <- positions %>% filter(`Asset Strategy Detail` != "Cash")
+#convert to percentages
+portfolio<-positions %>% mutate(weight=Value/sum(Value)) %>%
+  select(starts_with("Asset"),Description,Ticker,weight) %>% 
+  rename(symbol=Ticker)
+
+portfolio
+save(portfolio,file="../data/portfolio.rdata")
 ```
 
 ```{r}
-returns %>% filter(symbol != "OMFL" &  
-                     symbol != "OIMYX" &
-                     symbol != "ESGF") %>% 
-  ggplot(aes(return)) + 
-  geom_histogram(aes(fill=symbol),alpha=0.5,binwidth = 0.01) + 
-  geom_density(aes(color=symbol)) + 
-  facet_wrap(~symbol)
-```
-
-```{r}
-#-----------------------------
-#BONUS Cumulative Return "Mountain Chart" function
-chart_cum_returns<-function(Ra, 
-                            ret_col='return',
-                            name_col='name',
-                            date_col='date',
-                            shape=c('long','wide')){
-  #Returns a ggplot2 line chart object for plotting or further annotation
-  #Crucially, this function adds a dummy date at the beginning of the series to start.
-  #the plot at the origin without a gap.
-  Ra<-ungroup(Ra)
-  Ra<-select(Ra,name = name_col,return=ret_col,date=date_col)
-  shape<-match.arg(shape)
-  if (shape=='wide'){
-    Ra<- Ra %>%
-      gather(name,return,-date)
-  } else{
-    Ra<- Ra %>% select(date,name,return)
-  }
-  
-  #create wealth index. Add a date to start at "1"
-  # that is equal to the length between the first and second dates
-  new_dates<-(Ra$date[1]-as.numeric(Ra$date[2]-Ra$date[1])) %>% c(Ra$date)
-  Ra<- Ra %>% 
-    group_by(name)%>% 
-    complete(date=new_dates,fill=list(return=0)) %>% 
-    mutate(wealth=cumprod(1+return))
-  
-  gg<-Ra %>% 
-    as.tibble() %>% 
-    group_by(name) %>% 
-    ggplot(aes(x=date,y=wealth,color=name))+geom_line()
-  
-  return(gg) 
-}
-#-----------------------------
-returns %>% 
-#  filter(symbol==c("OMFL")) %>%
-  chart_cum_returns(name_col="symbol",shape="long")  
+load("../data/portfolio.rdata")
+portfolio_return<-returns %>% 
+  left_join(select(portfolio,symbol,weight)) %>% 
+  group_by(date) %>% 
+  summarise(portfolio_return=sum(return*weight))
 ```
