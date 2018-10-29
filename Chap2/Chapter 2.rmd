@@ -27,6 +27,9 @@ symbols <-
     "OIGYX",
     "GLVYX",
     "MIGYX")
+```
+
+```{r}
 
 raw_symbols <-
   getSymbols(
@@ -42,6 +45,13 @@ raw_prices <- raw_symbols %>%
   map( ~ Ad(get(.))) %>%
   reduce(merge) %>%
   `colnames<-`(symbols)
+
+save(raw_prices,file="../data/raw_prices.rdata")
+```
+
+```{r}
+
+load("../data/raw_prices.rdata")
 ```
 
 ```{r}
@@ -77,12 +87,19 @@ returns %>% filter(symbol != "OMFL" &
                     symbol != "OIMYX" &
                      symbol != "ESGF") %>% 
   ggplot(aes(return,fill=symbol))+geom_density(alpha=0.5)
+```
 
+```{r}
 returns %>% filter(symbol != "OMFL" &  
                      symbol != "OIMYX" &
                      symbol != "ESGF") %>% 
-  ggplot(aes(return,fill=symbol))+geom_histogram()+facet_wrap(~symbol)
+  ggplot(aes(return)) + 
+  geom_histogram(aes(fill=symbol),alpha=0.5,binwidth = 0.01) + 
+  geom_density(aes(color=symbol)) + 
+  facet_wrap(~symbol)
+```
 
+```{r}
 #-----------------------------
 #BONUS Cumulative Return "Mountain Chart" function
 chart_cum_returns<-function(Ra, 
@@ -123,9 +140,3 @@ returns %>%
 #  filter(symbol==c("OMFL")) %>%
   chart_cum_returns(name_col="symbol",shape="long")  
 ```
-
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
-
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
-
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
