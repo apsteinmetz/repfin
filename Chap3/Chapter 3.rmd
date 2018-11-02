@@ -88,9 +88,37 @@ save(portfolio,file="../data/portfolio.rdata")
 ```
 
 ```{r}
+# this file is in repo.  Dollars are missing.  Only weights.
 load("../data/portfolio.rdata")
+
 portfolio_return<-returns %>% 
+  na.omit() %>% 
   left_join(select(portfolio,symbol,weight)) %>% 
   group_by(date) %>% 
   summarise(portfolio_return=sum(return*weight))
 ```
+Volatility
+```{r}
+sd(portfolio_return$portfolio_return)*(12^.5)*100
+```
+
+
+Correlation Matrix
+```{r}
+#filter out incomplete series
+subset_year <- function(tidy_ret,yr){
+tidy_ret %>% group_by(symbol) %>% 
+  filter(year(date)>=yr) %>% 
+  #filter out incomplete series
+  filter(!is.na(sum(return)))
+}
+
+returns %>% subset_year(2012) %>% 
+  spread(symbol,return) %>% 
+  select(-date) %>% 
+  cov()  %>% 
+  cov2cor() %>% 
+  round(digits = 2) %>% 
+  {.}
+```
+
