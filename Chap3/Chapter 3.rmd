@@ -23,6 +23,9 @@ symbols <-
     "OIGYX",
     "GLVYX",
     "MIGYX")
+
+source("../helper_functions.r")
+
 ```
 
 ```{r}
@@ -91,27 +94,34 @@ save(portfolio,file="../data/portfolio.rdata")
 # this file is in repo.  Dollars are missing.  Only weights.
 load("../data/portfolio.rdata")
 
-portfolio_return<-returns %>% 
-  na.omit() %>% 
+portfolio_return<-returns %>%
+  subset_year(2012) %>% 
   left_join(select(portfolio,symbol,weight)) %>% 
   group_by(date) %>% 
-  summarise(portfolio_return=sum(return*weight))
+  summarise(return=sum(return*weight))
+
+gg <- returns %>% subset_year(2012) %>% 
+  group_by(symbol) %>% 
+  chart_cum_returns(name_col = "symbol")
+
+gg
+
+  geom_line(data=portfolio_return,aes(x=date,y=return),size=2)
 ```
 Volatility
 ```{r}
-sd(portfolio_return$portfolio_return)*(12^.5)*100
+returns %>% subset_year(2012) %>% 
+  group_by(symbol) %>% 
+  summarise(vol_pct=volatility(return))
+```
+
+```{r}
+volatility(portfolio_return$portfolio_return,n=12)
 ```
 
 
 Correlation Matrix
 ```{r}
-#filter out incomplete series
-subset_year <- function(tidy_ret,yr){
-tidy_ret %>% group_by(symbol) %>% 
-  filter(year(date)>=yr) %>% 
-  #filter out incomplete series
-  filter(!is.na(sum(return)))
-}
 
 returns %>% subset_year(2012) %>% 
   spread(symbol,return) %>% 
