@@ -94,19 +94,30 @@ save(portfolio,file="../data/portfolio.rdata")
 # this file is in repo.  Dollars are missing.  Only weights.
 load("../data/portfolio.rdata")
 
+ggplot(portfolio,aes(symbol,weight,fill=`Asset Class`)) + geom_col()
+```
+OR
+```{r}
+ggplot(portfolio,aes(`Asset Class`,weight,fill=symbol)) + geom_col()
+
+```
+
+```{r}
+
 portfolio_return<-returns %>%
   subset_year(2012) %>% 
   left_join(select(portfolio,symbol,weight)) %>% 
   group_by(date) %>% 
-  summarise(return=sum(return*weight))
-
-gg <- returns %>% subset_year(2012) %>% 
-  group_by(symbol) %>% 
+  summarise(return=sum(return*weight)) %>% 
+  mutate(symbol="Portfolio") %>% 
+  group_by(symbol)
+  
+returns <- returns %>% bind_rows(portfolio_return)
+gg<-returns %>%  
+  subset_year(2012) %>% 
   chart_cum_returns(name_col = "symbol")
 
 gg
-
-  geom_line(data=portfolio_return,aes(x=date,y=return),size=2)
 ```
 Volatility
 ```{r}
