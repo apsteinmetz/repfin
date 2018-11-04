@@ -10,6 +10,7 @@ library(quantmod)
 library(tidyverse)
 library(tibbletime)
 library(timetk)
+library(highcharter)
 
 YEARS_BACK <- 5
 symbols <-
@@ -26,26 +27,6 @@ symbols <-
 
 source("../helper_functions.r")
 
-```
-
-```{r}
-
-raw_symbols <-
-  getSymbols(
-    symbols,
-    src = 'yahoo',
-    from = Sys.Date() - dyears(5),
-    to = Sys.Date(),
-    auto.assign = TRUE,
-    warnings = TRUE
-  )
-
-raw_prices <- raw_symbols %>%
-  map( ~ Ad(get(.))) %>%
-  reduce(merge) %>%
-  `colnames<-`(symbols)
-
-save(raw_prices,file="../data/raw_prices.rdata")
 ```
 
 ```{r}
@@ -84,7 +65,10 @@ positions <- positions %>% filter(`Asset Strategy Detail` != "Cash")
 #convert to percentages
 portfolio<-positions %>% mutate(weight=Value/sum(Value)) %>%
   select(starts_with("Asset"),Description,Ticker,weight) %>% 
-  rename(symbol=Ticker)
+  rename(symbol=Ticker) %>% 
+  mutate(name=gsub("OPPENHEIMER ","",Description)) %>% 
+  #strip share class from end
+  mutate(name=gsub("((-| )[A-Z])$","",name))
 
 portfolio
 save(portfolio,file="../data/portfolio.rdata")
@@ -98,7 +82,7 @@ ggplot(portfolio,aes(symbol,weight,fill=`Asset Class`)) + geom_col()
 ```
 OR
 ```{r}
-ggplot(portfolio,aes(`Asset Class`,weight,fill=symbol)) + geom_col()
+ggplot(portfolio,aes(`Asset Class`,weight,fill=name)) + geom_col()
 
 ```
 
@@ -109,15 +93,22 @@ portfolio_return<-returns %>%
   left_join(select(portfolio,symbol,weight)) %>% 
   group_by(date) %>% 
   summarise(return=sum(return*weight)) %>% 
-  mutate(symbol="Portfolio") %>% 
-  group_by(symbol)
-  
-returns <- returns %>% bind_rows(portfolio_return)
-gg<-returns %>%  
-  subset_year(2012) %>% 
-  chart_cum_returns(name_col = "symbol")
+  mutate(name="Portfolio") %>% 
+  group_by(name)
 
+#monkey with portfolio return so it conforms to the ggplot object
+#returned by chart_cum_returns
+w_port <- portfolio_return %>% ungroup() %>% 
+  transmute(date=date,name=name,wealth=cumprod(1+return))
+  
+gg<-returns %>% left_join(portfolio) %>% group_by(name) %>%   
+  subset_year(2012) %>% 
+  chart_cum_returns(name_col = "name")
+
+# add a heavy line for the blended portfolio
+gg<-gg+geom_line(data=w_port,size=2)
 gg
+
 ```
 Volatility
 ```{r}
@@ -127,7 +118,7 @@ returns %>% subset_year(2012) %>%
 ```
 
 ```{r}
-volatility(portfolio_return$portfolio_return,n=12)
+volatility(portfolio_return$return,n=12)
 ```
 
 
