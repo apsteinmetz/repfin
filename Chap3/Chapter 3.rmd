@@ -78,11 +78,13 @@ save(portfolio,file="../data/portfolio.rdata")
 # this file is in repo.  Dollars are missing.  Only weights.
 load("../data/portfolio.rdata")
 
-ggplot(portfolio,aes(symbol,weight,fill=`Asset Class`)) + geom_col()
+ggplot(portfolio,aes(symbol,weight,fill=`Asset Class`)) + geom_col()+ 
+  scale_y_continuous(labels = scales::percent)
 ```
 OR
 ```{r}
-ggplot(portfolio,aes(`Asset Class`,weight,fill=name)) + geom_col()
+ggplot(portfolio,aes(`Asset Class`,weight,fill=name)) + geom_col() +
+    scale_y_continuous(labels = scales::percent)
 
 ```
 
@@ -96,8 +98,8 @@ portfolio_return<-returns %>%
   mutate(name="Portfolio") %>% 
   group_by(name)
 
-#monkey with portfolio return so it conforms to the ggplot object
-#returned by chart_cum_returns
+# monkey with portfolio return so it conforms to the ggplot object
+# returned by chart_cum_returns
 w_port <- portfolio_return %>% ungroup() %>% 
   transmute(date=date,name=name,wealth=cumprod(1+return))
   
@@ -110,6 +112,16 @@ gg<-gg+geom_line(data=w_port,size=2)
 gg
 
 ```
+
+```{r}
+ggplot(returns, aes(x=return,fill=symbol,color=symbol)) + 
+  geom_density(alpha=0.2) +
+  geom_density(data=rename(portfolio_return,symbol=name))
+
+```
+
+
+
 Volatility
 ```{r}
 returns %>% subset_year(2012) %>% 
