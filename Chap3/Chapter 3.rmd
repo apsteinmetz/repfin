@@ -145,6 +145,7 @@ returns %>% subset_year(2012) %>%
   cov2cor() %>% 
   round(digits = 2) %>% 
   melt() %>% 
-  ggplot(aes(Var1,Var2,fill=value))+geom_tile()
+  ggplot(aes(Var1,Var2,fill=value))+geom_tile() +
+  scale_fill_viridis_c()
 ```
 
