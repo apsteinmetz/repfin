@@ -8,9 +8,11 @@ library(xts)
 library(lubridate)
 library(quantmod)
 library(tidyverse)
+library(reshape2)
 library(tibbletime)
 library(timetk)
 library(highcharter)
+library(formattable)
 
 YEARS_BACK <- 5
 symbols <-
@@ -50,7 +52,6 @@ prices <- prices %>% mutate(price=ifelse((symbol=="OLTYX" & price > 6),price/2,p
 
 #create return series
 returns <- prices %>% transmute(date=date,return=log(price)/lag(log(price))-1) %>% slice(-1)
-
 returns
 ```
 
@@ -58,26 +59,29 @@ returns
 ```{r eval=FALSE, include=FALSE}
 #Make portfolio  Load positions
 # not part of git
-positions<-read_csv("../data/Positions.csv")
-
-#filter out cash
-positions <- positions %>% filter(`Asset Strategy Detail` != "Cash")
-#convert to percentages
-portfolio<-positions %>% mutate(weight=Value/sum(Value)) %>%
-  select(starts_with("Asset"),Description,Ticker,weight) %>% 
-  rename(symbol=Ticker) %>% 
-  mutate(name=gsub("OPPENHEIMER ","",Description)) %>% 
-  #strip share class from end
-  mutate(name=gsub("((-| )[A-Z])$","",name))
-
-portfolio
-save(portfolio,file="../data/portfolio.rdata")
+if (!file.exists("../data/portfolio.rdata")){
+  positions<-read_csv("../data/Positions.csv")
+  
+  #filter out cash
+  positions <- positions %>% filter(`Asset Strategy Detail` != "Cash")
+  #convert to percentages
+  portfolio<-positions %>% mutate(weight=Value/sum(Value)) %>%
+    select(starts_with("Asset"),Description,Ticker,weight) %>% 
+    rename(symbol=Ticker) %>% 
+    mutate(name=gsub("OPPENHEIMER ","",Description)) %>% 
+    #strip share class from end
+    mutate(name=gsub("((-| )[A-Z])$","",name))
+  
+  save(portfolio,file="../data/portfolio.rdata")
+}
 ```
 
 ```{r}
-# this file is in repo.  Dollars are missing.  Only weights.
+# this file is in repo.  Dollars are omitted for privacy.  Only weights.
 load("../data/portfolio.rdata")
-
+portfolio
+```
+```{r}
 ggplot(portfolio,aes(symbol,weight,fill=`Asset Class`)) + geom_col()+ 
   scale_y_continuous(labels = scales::percent)
 ```
@@ -120,8 +124,6 @@ ggplot(returns, aes(x=return,fill=symbol,color=symbol)) +
 
 ```
 
-
-
 Volatility
 ```{r}
 returns %>% subset_year(2012) %>% 
@@ -133,7 +135,6 @@ returns %>% subset_year(2012) %>%
 volatility(portfolio_return$return,n=12)
 ```
 
-
 Correlation Matrix
 ```{r}
 
@@ -143,6 +144,7 @@ returns %>% subset_year(2012) %>%
   cov()  %>% 
   cov2cor() %>% 
   round(digits = 2) %>% 
-  {.}
+  melt() %>% 
+  ggplot(aes(Var1,Var2,fill=value))+geom_tile()
 ```
 
