@@ -83,12 +83,14 @@ portfolio
 ```
 ```{r}
 ggplot(portfolio,aes(symbol,weight,fill=`Asset Class`)) + geom_col()+ 
-  scale_y_continuous(labels = scales::percent)
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_tq()
 ```
 OR
 ```{r}
 ggplot(portfolio,aes(`Asset Class`,weight,fill=name)) + geom_col() +
-    scale_y_continuous(labels = scales::percent)
+    scale_y_continuous(labels = scales::percent) +
+  scale_fill_tq()
 
 ```
 
