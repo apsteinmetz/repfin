@@ -125,7 +125,8 @@ Returns
 ```{r}
 renderPlot({
   portfolio_returns_byhand() %>% 
-    ggplot(aes(x = returns)) +
+    ggplot(aes(x = returns)) + 
+    scale_x_continuous(labels=scales::percent) +
     geom_histogram(alpha = 0.25, binwidth = .01, fill = "cornflowerblue")
 })
 ```
